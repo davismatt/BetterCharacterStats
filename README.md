@@ -1,31 +1,18 @@
-BetterCharacterStats - a World of Warcraft (1.12.1) AddOn
-===================================================
+BetterCharacterStats Classic
+============================
+
+This is a fork of the original BetterCharacterStats created by yutsuku for Vanilla WoW. I've modified it to support Classic.
 
 ![preview](https://raw.githubusercontent.com/yutsuku/BetterCharacterStats/gh-pages/images/BetterCharacterStats.png)
 
 Installation:
 
-Put "BetterCharacterStats" folder into ".../World of Warcraft/Interface/AddOns/".
-Create AddOns folder if necessary
-
-After Installation directory tree should look like the following
-
-	World of Warcraft
-	  `- Interface
-		 `- AddOns
-			`- BetterCharacterStats
-			   |- README.md
-			   |- BetterCharacterStats.lua
-			   |- BetterCharacterStats.toc
-			   |- BetterCharacterStats.xml
-			   |- helper.lua
-			   `- Localization.lua
+Put "BetterCharacterStats" folder into ".../World of Warcraft/\_classic\_/Interface/AddOns/".
 
 Features:
 - Displays character statistics in one place (just like the character tab in Burning Crusade).
 
 Known Issues:
-- May be lacking things related to spell hit/spell crit.
-
-Thanks to:
-- All people who keeps reporting to me that some things are missing or are broken.
+- Not all tooltips are displaying correctly
+- Selected options are not saving between relog.
+- Delay in stats updating if window is open when a buff is applied/removed.
