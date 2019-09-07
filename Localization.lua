@@ -84,9 +84,9 @@ BCS["L"] = {
 	["Critical strike chance with spells and melee attacks increased by (%d+)%%."] = "Critical strike chance with spells and melee attacks increased by (%d+)%%.",
 	
 	
-	["MELEE_HIT_TOOLTIP"] = [[|cffffffffHit|r
-	Result of an attack made with 
-	melee or ranged weapons.]],
+	["MELEE_HIT_TOOLTIP"] = [[|cffffffffHit|r 
+Result of an attack made with
+melee or ranged weapons.]],
 	
 	["SPELL_HIT_TOOLTIP"] = [[|cffffffffHit|r
 	Result of an attack made with 

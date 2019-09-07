@@ -217,6 +217,26 @@ function BCS:SetStat( statFrame , statIndex )
 			text:SetText(GREEN_FONT_COLOR_CODE..effectiveStat..FONT_COLOR_CODE_CLOSE)
 		end
 	end
+
+	local localClass , englishClass = UnitClass("player")
+
+	local prefTooltip = getglobal(englishClass.."_"..statIndexTable[statIndex].."_TOOLTIP")
+
+	if not prefTooltip then
+		prefTooltip = getglobal( "DEFAULT_"..statIndexTable[statIndex].."_TOOLTIP" )
+	end
+
+	statFrame.tooltipSubtext = format( prefTooltip , playerLevel)
+	
+	statFrame:SetScript("OnEnter", function()
+		GameTooltip:SetOwner(statFrame, "ANCHOR_RIGHT")
+		GameTooltip:SetText(statFrame.tooltip)
+		GameTooltip:AddLine(statFrame.tooltipSubtext, NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b, 1)
+		GameTooltip:Show()
+	end)
+	statFrame:SetScript("OnLeave", function()
+		GameTooltip:Hide()
+	end)
 end
 
 function BCS:SetArmor(statFrame)
@@ -452,10 +472,8 @@ function BCS:SetRating(statFrame, ratingType)
 		end
 		text:SetText(rating)
 		
-		frame.tooltip = L.MELEE_HIT_TOOLTIP
-		if L[BCS.playerClass .. "_MELEE_HIT_TOOLTIP"] then
-			frame.tooltipSubtext = L[BCS.playerClass .. "_MELEE_HIT_TOOLTIP"]
-		end
+		frame.tooltip = HIGHLIGHT_FONT_COLOR_CODE.."Hit Rating"
+		frame.tooltipSubtext = format(CR_HIT_MELEE_TOOLTIP,UnitLevel("player"),BCS:GetHitRating())
 	elseif ratingType == "RANGED" then
 		local rating = BCS:GetRangedHitRating()
 		if BCS.MELEEHIT[BCS.playerClass] then
