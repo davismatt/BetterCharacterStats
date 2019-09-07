@@ -27,9 +27,9 @@ function BCS:GetPlayerAura(searchText, auraType)
 		-- http://blue.cardplace.com/cache/wow-dungeons/624230.htm
 		-- 32 buffs max
 		for i=0, 31 do
-			local index = GetPlayerBuff(i, 'HELPFUL')
-			if index > -1 then
-				BCS_Tooltip:SetPlayerBuff(index)
+			local index = UnitBuff( "player", i, 'HELPFUL')
+			if index then
+				BCS_Tooltip:SetUnitBuff("player",i)
 				local MAX_LINES = BCS_Tooltip:NumLines()
 					
 				for line=1, MAX_LINES do
@@ -45,9 +45,9 @@ function BCS:GetPlayerAura(searchText, auraType)
 		end
 	elseif auraType == 'HARMFUL' then
 		for i=0, 6 do
-			local index = GetPlayerBuff(i, auraType)
-			if index > -1 then
-				BCS_Tooltip:SetPlayerBuff(index)
+			local index = UnitBuff( "player", i, auraType)
+			if index then
+				BCS_Tooltip:SetUnitBuff("player",i)
 				local MAX_LINES = BCS_Tooltip:NumLines()
 					
 				for line=1, MAX_LINES do
@@ -403,7 +403,7 @@ function BCS:GetCritChance()
 	-- speedup
 	if Cache_GetCritChance_SpellID and Cache_GetCritChance_BookType and Cache_GetCritChance_Line then
 	
-		BCS_Tooltip:SetSpell(Cache_GetCritChance_SpellID, Cache_GetCritChance_BookType)
+		BCS_Tooltip:SetSpellBookItem(Cache_GetCritChance_SpellID, Cache_GetCritChance_BookType)
 		local left = getglobal(BCS_Prefix .. "TextLeft" .. Cache_GetCritChance_Line)
 		if left:GetText() then
 			local _,_, value = strfind(left:GetText(), L["([%d.]+)%% chance to crit"])
@@ -424,7 +424,7 @@ function BCS:GetCritChance()
 			local currentPage = ceil(spell/SPELLS_PER_PAGE)
 			local SpellID = spell + offset + ( SPELLS_PER_PAGE * (currentPage - 1))
 
-			BCS_Tooltip:SetSpell(SpellID, BOOKTYPE_SPELL)
+			BCS_Tooltip:SetSpellBookItem(SpellID, BOOKTYPE_SPELL)
 			local MAX_LINES = BCS_Tooltip:NumLines()
 			
 			for line=1, MAX_LINES do
