@@ -1,7 +1,7 @@
 ## Interface: 11200
-## Title: BetterCharacterStats
-## Author: moh
-## Version: 1.11
+## Title: BetterCharacterStats Classic
+## Author: Matt Davis (credit to moh, yutsuku)
+## Version: 2.00
 ## SavedVariablesPerCharacter: BCSConfig
 
 BetterCharacterStats.xml
