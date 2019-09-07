@@ -78,13 +78,15 @@ function BCS:OnLoad()
 	self.Frame:RegisterEvent("ADDON_LOADED")
 	self.Frame:RegisterEvent("UNIT_INVENTORY_CHANGED") -- fires when equipment changes
 	self.Frame:RegisterEvent("CHARACTER_POINTS_CHANGED") -- fires when learning talent
-	self.Frame:RegisterEvent("PLAYER_AURAS_CHANGED") -- buffs/warrior stances
-	
+	self.Frame:RegisterEvent("UNIT_AURA") -- buffs/warrior stances
+	self.Frame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+
 	local _, classFileName = UnitClass("Player")
 	self.playerClass = strupper(classFileName)
 end
 
 function BCS:OnEvent()
+	
 	--[[if BCS.Debug then
 		local t = {
 			E = event,
@@ -96,10 +98,14 @@ function BCS:OnEvent()
 		}
 		tinsert(BCS.DebugStack, t)
 	end]]
-	
+	local timestamp , subevent  = CombatLogGetCurrentEventInfo()
+
 	if
-		event == "PLAYER_AURAS_CHANGED" or
-		event == "CHARACTER_POINTS_CHANGED"
+		event == "CHARACTER_POINTS_CHANGED" or
+		subevent == "SPELL_AURA_REFRESH" or
+		subevent == "SPELL_AURA_REMOVED" or
+		subevent == "SPELL_AURA_APPLIED" 
+
 	then
 		if BCS.PaperDollFrame:IsVisible() then
 			BCS:UpdateStats()
@@ -132,6 +138,7 @@ end
 --local avgV = {}
 --local avg = 0
 function BCS:UpdateStats()
+	
 	--[[if BCS.Debug then
 		local e = event or "nil"
 		BCS:Print("Update due to " .. e)
@@ -153,9 +160,10 @@ function BCS:UpdateStats()
 	BCS:Print(format("Average: %d (%d results), Exact: %d", avg, getn(avgV), timeUsed))]]
 end
 
-function BCS:SetStat(statFrame, statIndex)
-	local label = getglobal(statFrame:GetName().."Label")
-	local text = getglobal(statFrame:GetName().."StatText")
+function BCS:SetStat( statFrame , statIndex )
+	
+	local label = getglobal( statFrame:GetName().."Label" )
+	local text  = getglobal( statFrame:GetName().."StatText" )
 	local stat
 	local effectiveStat
 	local posBuff
@@ -176,11 +184,11 @@ function BCS:SetStat(statFrame, statIndex)
 		GameTooltip:Hide()
 	end)
 	
-	label:SetText(TEXT(getglobal("SPELL_STAT"..(statIndex-1).."_NAME"))..":")
+	label:SetText(getglobal("SPELL_STAT"..(statIndex).."_NAME")..":")
 	stat, effectiveStat, posBuff, negBuff = UnitStat("player", statIndex)
 	
 	-- Set the tooltip text
-	local tooltipText = HIGHLIGHT_FONT_COLOR_CODE..getglobal("SPELL_STAT"..(statIndex-1).."_NAME").." "
+	local tooltipText = HIGHLIGHT_FONT_COLOR_CODE..getglobal("SPELL_STAT"..(statIndex).."_NAME").." "
 
 	if ( ( posBuff == 0 ) and ( negBuff == 0 ) ) then
 		text:SetText(effectiveStat)
@@ -220,7 +228,7 @@ function BCS:SetArmor(statFrame)
 	local text = getglobal(frame:GetName() .. "StatText")
 
 	PaperDollFormatStat(ARMOR, base, posBuff, negBuff, frame, text)
-	label:SetText(TEXT(ARMOR_COLON))
+	label:SetText(ARMOR_COLON)
 	
 	local playerLevel = UnitLevel("player")
 	local armorReduction = effectiveArmor/((85 * playerLevel) + 400)
@@ -229,9 +237,9 @@ function BCS:SetArmor(statFrame)
 	frame.tooltipSubtext = format(ARMOR_TOOLTIP, playerLevel, armorReduction)
 	
 	frame:SetScript("OnEnter", function()
-		GameTooltip:SetOwner(this, "ANCHOR_RIGHT")
-		GameTooltip:SetText(this.tooltip)
-		GameTooltip:AddLine(this.tooltipSubtext, NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b, 1)
+		GameTooltip:SetOwner(statFrame, "ANCHOR_RIGHT")
+		GameTooltip:SetText(statFrame.tooltip)
+		GameTooltip:AddLine(statFrame.tooltipSubtext, NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b, 1)
 		GameTooltip:Show()
 	end)
 	frame:SetScript("OnLeave", function()
@@ -242,7 +250,7 @@ end
 
 function BCS:SetDamage(statFrame)
 	local label = getglobal(statFrame:GetName() .. "Label")
-	label:SetText(TEXT(DAMAGE_COLON))
+	label:SetText(DAMAGE_COLON)
 	local damageText = getglobal(statFrame:GetName() .. "StatText")
 	local damageFrame = statFrame
 	
@@ -356,7 +364,7 @@ function BCS:SetAttackSpeed(statFrame)
 	local label = getglobal(statFrame:GetName() .. "Label")
 	local value = getglobal(statFrame:GetName() .. "StatText")
 	
-	label:SetText(TEXT(SPEED)..":")
+	label:SetText(SPEED..":")
 	value:SetText(text)
 
 	--[[statFrame.tooltip = HIGHLIGHT_FONT_COLOR_CODE..format(PAPERDOLLFRAME_TOOLTIP_FORMAT, ATTACK_SPEED).." "..text..FONT_COLOR_CODE_CLOSE;
@@ -372,7 +380,7 @@ function BCS:SetAttackPower(statFrame)
 	local text = getglobal(statFrame:GetName() .. "StatText")
 	local label = getglobal(statFrame:GetName() .. "Label")
 	
-	label:SetText(TEXT(ATTACK_POWER_COLON))
+	label:SetText(ATTACK_POWER_COLON)
 
 	PaperDollFormatStat(MELEE_ATTACK_POWER, base, posBuff, negBuff, frame, text)
 	frame.tooltipSubtext = format(MELEE_ATTACK_POWER_TOOLTIP, max((base+posBuff+negBuff), 0)/ATTACK_POWER_MAGIC_NUMBER)
@@ -407,8 +415,8 @@ function BCS:SetSpellPower(statFrame, school)
 			frame.tooltip = format(L.SPELL_POWER_SECONDARY_TOOLTIP, (power+secondaryPower), power, secondaryPower, secondaryName)
 			
 			frame:SetScript("OnEnter", function()
-				GameTooltip:SetOwner(this, "ANCHOR_RIGHT")
-				GameTooltip:SetText(this.tooltip)
+				GameTooltip:SetOwner(statFrame, "ANCHOR_RIGHT")
+				GameTooltip:SetText(statFrame.tooltip)
 				GameTooltip:Show()
 			end)
 			frame:SetScript("OnLeave", function()
@@ -520,9 +528,9 @@ function BCS:SetRating(statFrame, ratingType)
 	
 	if frame.tooltip then
 		frame:SetScript("OnEnter", function()
-			GameTooltip:SetOwner(this, "ANCHOR_RIGHT")
-			GameTooltip:SetText(this.tooltip)
-			GameTooltip:AddLine(this.tooltipSubtext, NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b, 1)
+			GameTooltip:SetOwner(statFrame, "ANCHOR_RIGHT")
+			GameTooltip:SetText(statFrame.tooltip)
+			GameTooltip:AddLine(statFrame.tooltipSubtext, NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b, 1)
 			GameTooltip:Show()
 		end)
 		frame:SetScript("OnLeave", function()
@@ -575,8 +583,8 @@ function BCS:SetHealing(statFrame)
 	frame.tooltip = format(L.SPELL_HEALING_POWER_TOOLTIP, (power+heal), power, heal)
 	
 	frame:SetScript("OnEnter", function()
-		GameTooltip:SetOwner(this, "ANCHOR_RIGHT")
-		GameTooltip:SetText(this.tooltip)
+		GameTooltip:SetOwner(statFrame, "ANCHOR_RIGHT")
+		GameTooltip:SetText(statFrame.tooltip)
 		GameTooltip:Show()
 	end)
 	frame:SetScript("OnLeave", function()
@@ -597,8 +605,8 @@ function BCS:SetManaRegen(statFrame)
 	frame.tooltip = format(L.SPELL_MANA_REGEN_TOOLTIP, (base+mp5), base, mp5)
 	
 	frame:SetScript("OnEnter", function()
-		GameTooltip:SetOwner(this, "ANCHOR_RIGHT")
-		GameTooltip:SetText(this.tooltip)
+		GameTooltip:SetOwner(statFrame, "ANCHOR_RIGHT")
+		GameTooltip:SetText(statFrame.tooltip)
 		GameTooltip:Show()
 	end)
 	frame:SetScript("OnLeave", function()
@@ -640,7 +648,7 @@ function BCS:SetDefense(statFrame)
 	local label = getglobal(statFrame:GetName() .. "Label")
 	local text = getglobal(statFrame:GetName() .. "StatText")
 	
-	label:SetText(TEXT(DEFENSE_COLON))
+	label:SetText(DEFENSE_COLON)
 	
 	local posBuff = 0
 	local negBuff = 0
@@ -657,7 +665,7 @@ function BCS:SetRangedDamage(statFrame)
 	local damageText = getglobal(statFrame:GetName() .. "StatText")
 	local damageFrame = statFrame
 	
-	label:SetText(TEXT(DAMAGE_COLON))
+	label:SetText(DAMAGE_COLON)
 	
 	damageFrame:SetScript("OnEnter", CharacterRangedDamageFrame_OnEnter)
 	damageFrame:SetScript("OnLeave", function()
@@ -715,7 +723,7 @@ function BCS:SetRangedDamage(statFrame)
 		elseif ( percent < 1 ) then
 			tooltip = tooltip..colorNeg.." x"..floor(percent*100+0.5).."%|r"
 		end
-		damageFrame.tooltip = tooltip.." "..format(TEXT(DPS_TEMPLATE), damagePerSecond)
+		damageFrame.tooltip = tooltip.." "..format(DPS_TEMPLATE, damagePerSecond)
 	end
 	damageFrame.attackSpeed = rangedAttackSpeed
 	damageFrame.damage = tooltip
@@ -727,7 +735,7 @@ function BCS:SetRangedAttackSpeed(startFrame)
 	local damageText = getglobal(startFrame:GetName() .. "StatText")
 	local damageFrame = startFrame
 	
-	label:SetText(TEXT(SPEED)..":")
+	label:SetText(SPEED..":")
 
 	-- If no ranged attack then set to n/a
 	if ( PaperDollFrame.noRanged ) then
@@ -780,7 +788,7 @@ function BCS:SetRangedAttackSpeed(startFrame)
 		elseif ( percent < 1 ) then
 			tooltip = tooltip..colorNeg.." x"..floor(percent*100+0.5).."%|r"
 		end
-		damageFrame.tooltip = tooltip.." "..format(TEXT(DPS_TEMPLATE), damagePerSecond)
+		damageFrame.tooltip = tooltip.." "..format(DPS_TEMPLATE, damagePerSecond)
 	end
 	
 	damageText:SetText(format("%.2f", rangedAttackSpeed))
@@ -795,7 +803,7 @@ function BCS:SetRangedAttackPower(statFrame)
 	local text = getglobal(statFrame:GetName() .. "StatText")
 	local label = getglobal(statFrame:GetName() .. "Label")
 	
-	label:SetText(TEXT(ATTACK_POWER_COLON))
+	label:SetText(ATTACK_POWER_COLON)
 	
 	-- If no ranged attack then set to n/a
 	if ( PaperDollFrame.noRanged ) then
@@ -815,6 +823,7 @@ function BCS:SetRangedAttackPower(statFrame)
 end
 
 function BCS:UpdatePaperdollStats(prefix, index)
+	
 	local stat1 = getglobal(prefix..1)
 	local stat2 = getglobal(prefix..2)
 	local stat3 = getglobal(prefix..3)
@@ -833,7 +842,6 @@ function BCS:UpdatePaperdollStats(prefix, index)
 	stat1.tooltip = nil
 	stat2.tooltip = nil
 	stat3.tooltip = nil
-	stat4.tooltip = nil
 	stat4.tooltip = nil
 	stat5.tooltip = nil
 	stat6.tooltip = nil
@@ -887,18 +895,18 @@ function BCS:UpdatePaperdollStats(prefix, index)
 	end
 end
 
-local function PlayerStatFrameLeftDropDown_OnClick()
-	UIDropDownMenu_SetSelectedValue(getglobal(this.owner), this.value)
-	IndexLeft = this.value
-	BCSConfig["DropdownLeft"] = IndexLeft
-	BCS:UpdatePaperdollStats("PlayerStatFrameLeft", this.value)
+local function PlayerStatFrameLeftDropDown_OnClick(self)
+	UIDropDownMenu_SetSelectedValue(self.owner, self.value)
+	IndexLeft = self.value
+	BCSConfig["DropdownLeft"] = self.value
+	BCS:UpdatePaperdollStats("PlayerStatFrameLeft", self.value)
 end
 
-local function PlayerStatFrameRightDropDown_OnClick()
-	UIDropDownMenu_SetSelectedValue(getglobal(this.owner), this.value)
-	IndexRight = this.value
-	BCSConfig["DropdownRight"] = IndexRight
-	BCS:UpdatePaperdollStats("PlayerStatFrameRight", this.value)
+local function PlayerStatFrameRightDropDown_OnClick(self)
+	UIDropDownMenu_SetSelectedValue(self.owner, self.value)
+	IndexRight = self.value
+	BCSConfig["DropdownRight"] = self.value
+	BCS:UpdatePaperdollStats("PlayerStatFrameRight", self.value)
 end
 
 local function PlayerStatFrameLeftDropDown_Initialize()
@@ -928,17 +936,19 @@ local function PlayerStatFrameRightDropDown_Initialize()
 end
 
 function PlayerStatFrameLeftDropDown_OnLoad()
-	RaiseFrameLevel(this)
-	RaiseFrameLevel(getglobal(this:GetName() .. "Button"))
-	UIDropDownMenu_Initialize(this, PlayerStatFrameLeftDropDown_Initialize)
-	UIDropDownMenu_SetWidth(99, this)
-	UIDropDownMenu_JustifyText("LEFT")
+	local self = PlayerStatFrameLeftDropDown
+	RaiseFrameLevel(self)
+	RaiseFrameLevel(getglobal(self:GetName() .. "Button"))
+	UIDropDownMenu_Initialize(self, PlayerStatFrameLeftDropDown_Initialize)
+	UIDropDownMenu_SetWidth(self,99)
+	UIDropDownMenu_JustifyText(self,"LEFT")
 end
 
 function PlayerStatFrameRightDropDown_OnLoad()
-	RaiseFrameLevel(this)
-	RaiseFrameLevel(getglobal(this:GetName() .. "Button"))
-	UIDropDownMenu_Initialize(this, PlayerStatFrameRightDropDown_Initialize)
-	UIDropDownMenu_SetWidth(99, this)
-	UIDropDownMenu_JustifyText("LEFT")
+	local self = PlayerStatFrameRightDropDown
+	RaiseFrameLevel(self)
+	RaiseFrameLevel(getglobal(self:GetName() .. "Button"))
+	UIDropDownMenu_Initialize(self, PlayerStatFrameRightDropDown_Initialize)
+	UIDropDownMenu_SetWidth(self,99)
+	UIDropDownMenu_JustifyText(self,"LEFT")
 end
